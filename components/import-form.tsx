@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Upload, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Upload, CheckCircle, XCircle, Loader2, Download } from 'lucide-react'
 
 export function ImportForm() {
   const [file, setFile] = useState<File | null>(null)
@@ -77,6 +77,19 @@ export function ImportForm() {
         <CardDescription>
           Upload an .xlsx file with bet data. If the file doesn't have a "Person" column, enter the person's name below.
         </CardDescription>
+        <div className="mt-4">
+          <a
+            href="/api/template"
+            download="bet_tracker_template.xlsx"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            <Download className="h-4 w-4" />
+            Download Template Spreadsheet
+          </a>
+          <p className="text-xs text-muted-foreground mt-2">
+            Need help? Download our template to see the required format with example bets.
+          </p>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
