@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Person {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  bets      Bet[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("persons")
+}
+
+model Bet {
+  id               String      @id @default(uuid())
+  personId         String      @map("person_id")
+  person           Person      @relation(fields: [personId], references: [id], onDelete: Cascade)
+  type             BetType
+  gameDateTime     DateTime?   @map("game_datetime")
+  description      String
+  matchup          String
+  betType          String      @map("bet_type")
+  odds             String
+  wager            Decimal     @db.Decimal(10, 2)
+  potentialPayout  Decimal     @map("potential_payout") @db.Decimal(10, 2)
+  result           BetResult   @default(Pending)
+  profitLoss       Decimal     @default(0) @map("profit_loss") @db.Decimal(10, 2)
+  parlayLegs       ParlayLeg[]
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  @@index([personId])
+  @@index([result])
+  @@index([type])
+  @@map("bets")
+}
+
+model ParlayLeg {
+  id          String    @id @default(uuid())
+  betId       String    @map("bet_id")
+  bet         Bet       @relation(fields: [betId], references: [id], onDelete: Cascade)
+  description String
+  matchup     String
+  odds        String
+  result      BetResult @default(Pending)
+
+  @@index([betId])
+  @@map("parlay_legs")
+}
+
+enum BetType {
+  Straight
+  Parlay
+}
+
+enum BetResult {
+  Pending
+  Win
+  Loss
+}
