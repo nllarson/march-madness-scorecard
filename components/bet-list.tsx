@@ -7,11 +7,35 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 import { ChevronDown, ChevronRight, Search } from 'lucide-react'
-import type { Bet, Person, ParlayLeg } from '@prisma/client'
 
-type BetWithRelations = Bet & {
-  person: Person
-  parlayLegs: ParlayLeg[]
+type BetWithRelations = {
+  id: string
+  personId: string
+  person: {
+    id: string
+    name: string
+    createdAt: Date
+  }
+  type: string
+  gameDateTime: Date | null
+  description: string
+  matchup: string
+  betType: string
+  odds: string
+  wager: number
+  potentialPayout: number
+  result: string
+  profitLoss: number
+  parlayLegs: {
+    id: string
+    betId: string
+    description: string
+    matchup: string
+    odds: string
+    result: string
+  }[]
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface BetListProps {

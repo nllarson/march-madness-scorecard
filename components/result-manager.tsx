@@ -8,9 +8,28 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import type { Bet, Person } from '@prisma/client'
 
-type BetWithPerson = Bet & { person: Person }
+type BetWithPerson = {
+  id: string
+  personId: string
+  person: {
+    id: string
+    name: string
+    createdAt: Date
+  }
+  type: string
+  gameDateTime: Date | null
+  description: string
+  matchup: string
+  betType: string
+  odds: string
+  wager: number
+  potentialPayout: number
+  result: string
+  profitLoss: number
+  createdAt: Date
+  updatedAt: Date
+}
 
 interface ResultManagerProps {
   bets: BetWithPerson[]
