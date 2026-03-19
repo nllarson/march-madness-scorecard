@@ -198,6 +198,14 @@ export async function deleteBet(betId: string) {
   })
 }
 
+export async function getAllPersons() {
+  return await prisma.person.findMany({
+    orderBy: {
+      name: 'asc',
+    },
+  })
+}
+
 export async function getOrCreatePerson(name: string) {
   let person = await prisma.person.findUnique({
     where: { name },

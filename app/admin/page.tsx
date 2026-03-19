@@ -1,5 +1,6 @@
-import { getAllBets } from '@/lib/queries'
+import { getAllBets, getAllPersons } from '@/lib/queries'
 import { ImportForm } from '@/components/import-form'
+import { AddBetForm } from '@/components/add-bet-form'
 import { ResultManager } from '@/components/result-manager'
 import Link from 'next/link'
 import { Home } from 'lucide-react'
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   const bets = await getAllBets()
+  const persons = await getAllPersons()
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-background to-muted/20">
@@ -28,6 +30,7 @@ export default async function AdminPage() {
 
         <div className="space-y-8">
           <ImportForm />
+          <AddBetForm persons={persons} />
           <ResultManager bets={bets} />
         </div>
       </div>
