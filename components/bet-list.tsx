@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
-import { ChevronDown, ChevronRight, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 type BetWithRelations = {
   id: string
@@ -52,7 +52,6 @@ export function BetList({ bets }: BetListProps) {
   const [resultFilter, setResultFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('gameDateTime')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [expandedBets, setExpandedBets] = useState<Set<string>>(new Set())
 
   const uniquePersons = useMemo(() => {
     const persons = new Map<string, string>()
@@ -108,15 +107,6 @@ export function BetList({ bets }: BetListProps) {
     }
   }
 
-  const toggleExpanded = (betId: string) => {
-    const newExpanded = new Set(expandedBets)
-    if (newExpanded.has(betId)) {
-      newExpanded.delete(betId)
-    } else {
-      newExpanded.add(betId)
-    }
-    setExpandedBets(newExpanded)
-  }
 
   const getResultBadgeVariant = (result: string) => {
     if (result === 'Win') return 'win'
@@ -186,7 +176,6 @@ export function BetList({ bets }: BetListProps) {
           <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className="text-left p-3 font-medium w-8"></th>
                 <th className="text-left p-3 font-medium">Person</th>
                 <th className="text-left p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('gameDateTime')}>
                   Date/Time {sortField === 'gameDateTime' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -211,20 +200,6 @@ export function BetList({ bets }: BetListProps) {
               {filteredAndSortedBets.map((bet) => (
                 <React.Fragment key={bet.id}>
                   <tr className={`border-b ${getRowClassName(bet.result)}`}>
-                    <td className="p-3">
-                      {bet.type === 'Parlay' && (
-                        <button
-                          onClick={() => toggleExpanded(bet.id)}
-                          className="hover:bg-muted rounded p-1"
-                        >
-                          {expandedBets.has(bet.id) ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </button>
-                      )}
-                    </td>
                     <td className="p-3 font-medium">{bet.person.name}</td>
                     <td className="p-3 text-sm">
                       {bet.gameDateTime
@@ -262,45 +237,6 @@ export function BetList({ bets }: BetListProps) {
                       </span>
                     </td>
                   </tr>
-                  {bet.type === 'Parlay' && expandedBets.has(bet.id) && (
-                    <tr>
-                      <td colSpan={11} className="p-0">
-                        <div className="bg-muted/30 p-4 ml-12">
-                          <div className="text-sm font-medium mb-2">Parlay Details:</div>
-                          {bet.parlayLegs.length > 0 ? (
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b">
-                                  <th className="text-left p-2">Description</th>
-                                  <th className="text-left p-2">Matchup</th>
-                                  <th className="text-left p-2">Odds</th>
-                                  <th className="text-center p-2">Result</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {bet.parlayLegs.map((leg) => (
-                                  <tr key={leg.id} className="border-b">
-                                    <td className="p-2">{leg.description}</td>
-                                    <td className="p-2">{leg.matchup}</td>
-                                    <td className="p-2">{leg.odds}</td>
-                                    <td className="p-2 text-center">
-                                      <Badge variant={getResultBadgeVariant(leg.result)} className="text-xs">
-                                        {leg.result}
-                                      </Badge>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          ) : (
-                            <div className="text-sm text-muted-foreground italic">
-                              Individual leg details not available. See bet description for full parlay information.
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </React.Fragment>
               ))}
             </tbody>
