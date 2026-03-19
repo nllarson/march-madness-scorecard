@@ -110,7 +110,7 @@ export async function importBetsFromFile(
         await prisma.bet.create({
           data: {
             personId: person.id,
-            type: validated.Type,
+            type: validated.Type as 'Straight' | 'Parlay',
             gameDateTime,
             description: validated['Bet Description'],
             matchup: validated.Matchup,
