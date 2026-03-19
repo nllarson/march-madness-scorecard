@@ -53,7 +53,7 @@ export function BetList({ bets }: BetListProps) {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [resultFilter, setResultFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('gameDateTime')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [localBets, setLocalBets] = useState(bets)
   const [updating, setUpdating] = useState(false)
 
