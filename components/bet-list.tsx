@@ -173,23 +173,23 @@ export function BetList({ bets }: BetListProps) {
           Showing {filteredAndSortedBets.length} of {bets.length} bets
         </div>
         <div>
-          <table className="w-full table-fixed">
+          <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className="text-left p-3 font-medium">Person</th>
-                <th className="text-left p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('gameDateTime')}>
+                <th className="text-left p-3 font-medium w-24">Person</th>
+                <th className="text-left p-3 font-medium cursor-pointer hover:bg-muted w-32" onClick={() => toggleSort('gameDateTime')}>
                   Date/Time {sortField === 'gameDateTime' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th className="text-left p-3 font-medium">Description</th>
                 <th className="text-left p-3 font-medium">Matchup</th>
-                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('wager')}>
+                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted w-24" onClick={() => toggleSort('wager')}>
                   Wager {sortField === 'wager' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('potentialPayout')}>
+                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted w-24" onClick={() => toggleSort('potentialPayout')}>
                   Payout {sortField === 'potentialPayout' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th className="text-center p-3 font-medium">Result</th>
-                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('profitLoss')}>
+                <th className="text-center p-3 font-medium w-20">Result</th>
+                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted w-28" onClick={() => toggleSort('profitLoss')}>
                   Profit/Loss {sortField === 'profitLoss' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
               </tr>
@@ -210,8 +210,11 @@ export function BetList({ bets }: BetListProps) {
                           }).replace(/^(\d+)\/(\d+)\/\d+,\s*(.*)$/, '$1/$2 @ $3')
                         : '-'}
                     </td>
-                    <td className="p-3">{bet.description} -- ({bet.odds})</td>
-                    <td className="p-3">{bet.matchup}</td>
+                    <td className="p-3 break-words">
+                      {bet.description}{' '}
+                      <span className="text-xs text-muted-foreground">({bet.odds})</span>
+                    </td>
+                    <td className="p-3 break-words">{bet.matchup}</td>
                     <td className="p-3 text-right">{formatCurrency(Number(bet.wager))}</td>
                     <td className="p-3 text-right">{formatCurrency(Number(bet.potentialPayout))}</td>
                     <td className="p-3 text-center">
