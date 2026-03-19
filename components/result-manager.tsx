@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react'
 
 type BetWithPerson = {
   id: string
@@ -104,6 +104,57 @@ export function ResultManager({ bets }: ResultManagerProps) {
     }
   }
 
+  const deleteBet = async (betId: string) => {
+    if (!confirm('Are you sure you want to delete this bet? This action cannot be undone.')) {
+      return
+    }
+
+    setUpdating(true)
+    try {
+      const response = await fetch(`/api/bets/${betId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setLocalBets(prev => prev.filter(b => b.id !== betId))
+        setSelectedBets(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(betId)
+          return newSet
+        })
+      }
+    } catch (error) {
+      console.error('Failed to delete bet:', error)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const bulkDelete = async () => {
+    if (selectedBets.size === 0) return
+    
+    if (!confirm(`Are you sure you want to delete ${selectedBets.size} bet(s)? This action cannot be undone.`)) {
+      return
+    }
+
+    setUpdating(true)
+    try {
+      const deletePromises = Array.from(selectedBets).map(betId =>
+        fetch(`/api/bets/${betId}`, { method: 'DELETE' })
+      )
+
+      await Promise.all(deletePromises)
+      
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
+    } catch (error) {
+      console.error('Failed to bulk delete:', error)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   const getResultBadgeVariant = (result: string) => {
     if (result === 'Win') return 'win'
     if (result === 'Loss') return 'loss'
@@ -141,6 +192,19 @@ export function ResultManager({ bets }: ResultManagerProps) {
               )}
               Mark {selectedBets.size} as Loss
             </Button>
+            <Button
+              onClick={bulkDelete}
+              disabled={updating}
+              variant="outline"
+              className="border-red-600 text-red-600 hover:bg-red-50"
+            >
+              {updating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Delete {selectedBets.size}
+            </Button>
           </div>
         )}
       </CardHeader>
@@ -162,6 +226,7 @@ export function ResultManager({ bets }: ResultManagerProps) {
                 <th className="text-right p-3 font-medium">Payout</th>
                 <th className="text-center p-3 font-medium">Result</th>
                 <th className="text-right p-3 font-medium">Profit/Loss</th>
+                <th className="text-center p-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -212,6 +277,17 @@ export function ResultManager({ bets }: ResultManagerProps) {
                     >
                       {formatCurrency(Number(bet.profitLoss))}
                     </span>
+                  </td>
+                  <td className="p-3 text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteBet(bet.id)}
+                      disabled={updating}
+                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </td>
                 </tr>
               ))}
