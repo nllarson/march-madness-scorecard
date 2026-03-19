@@ -52,6 +52,8 @@ export function BetList({ bets }: BetListProps) {
   const [resultFilter, setResultFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('gameDateTime')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [localBets, setLocalBets] = useState(bets)
+  const [updating, setUpdating] = useState(false)
 
   const uniquePersons = useMemo(() => {
     const persons = new Map<string, string>()
@@ -62,7 +64,7 @@ export function BetList({ bets }: BetListProps) {
   }, [bets])
 
   const filteredAndSortedBets = useMemo(() => {
-    let filtered = bets.filter(bet => {
+    let filtered = localBets.filter(bet => {
       const matchesSearch = 
         searchQuery === '' ||
         bet.person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,7 +98,7 @@ export function BetList({ bets }: BetListProps) {
     })
 
     return filtered
-  }, [bets, searchQuery, personFilter, typeFilter, resultFilter, sortField, sortDirection])
+  }, [localBets, searchQuery, personFilter, typeFilter, resultFilter, sortField, sortDirection])
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -104,6 +106,26 @@ export function BetList({ bets }: BetListProps) {
     } else {
       setSortField(field)
       setSortDirection('desc')
+    }
+  }
+
+  const updateBetResult = async (betId: string, result: 'Win' | 'Loss' | 'Pending') => {
+    setUpdating(true)
+    try {
+      const response = await fetch(`/api/bets/${betId}/result`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result }),
+      })
+
+      if (response.ok) {
+        const updatedBet = await response.json()
+        setLocalBets(prev => prev.map(b => b.id === betId ? { ...b, result: updatedBet.result, profitLoss: updatedBet.profitLoss } : b))
+      }
+    } catch (error) {
+      console.error('Failed to update bet:', error)
+    } finally {
+      setUpdating(false)
     }
   }
 
@@ -218,7 +240,26 @@ export function BetList({ bets }: BetListProps) {
                     <td className="p-3 text-right">{formatCurrency(Number(bet.wager))}</td>
                     <td className="p-3 text-right">{formatCurrency(Number(bet.potentialPayout))}</td>
                     <td className="p-3 text-center">
-                      <Badge variant={getResultBadgeVariant(bet.result)}>{bet.result}</Badge>
+                      <Select
+                        value={bet.result}
+                        onValueChange={(value) => updateBetResult(bet.id, value as 'Win' | 'Loss' | 'Pending')}
+                        disabled={updating}
+                      >
+                        <SelectTrigger className="w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pending">
+                            <Badge variant="pending">Pending</Badge>
+                          </SelectItem>
+                          <SelectItem value="Win">
+                            <Badge variant="win">Win</Badge>
+                          </SelectItem>
+                          <SelectItem value="Loss">
+                            <Badge variant="loss">Loss</Badge>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </td>
                     <td className="p-3 text-right">
                       <span
