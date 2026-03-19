@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -46,6 +47,7 @@ type SortField = 'gameDateTime' | 'wager' | 'potentialPayout' | 'profitLoss'
 type SortDirection = 'asc' | 'desc'
 
 export function BetList({ bets }: BetListProps) {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [personFilter, setPersonFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
@@ -121,6 +123,8 @@ export function BetList({ bets }: BetListProps) {
       if (response.ok) {
         const updatedBet = await response.json()
         setLocalBets(prev => prev.map(b => b.id === betId ? { ...b, result: updatedBet.result, profitLoss: updatedBet.profitLoss } : b))
+        // Refresh server data without full page reload
+        router.refresh()
       }
     } catch (error) {
       console.error('Failed to update bet:', error)
@@ -245,18 +249,26 @@ export function BetList({ bets }: BetListProps) {
                         onValueChange={(value) => updateBetResult(bet.id, value as 'Win' | 'Loss' | 'Pending')}
                         disabled={updating}
                       >
-                        <SelectTrigger className="w-28">
-                          <SelectValue />
+                        <SelectTrigger className={`w-28 border-0 ${
+                          bet.result === 'Win' 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : bet.result === 'Loss'
+                            ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                            : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                        }`}>
+                          <SelectValue>
+                            <span className="font-medium">{bet.result}</span>
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Pending">
-                            <Badge variant="pending">Pending</Badge>
+                          <SelectItem value="Pending" className="cursor-pointer">
+                            <span className="font-medium text-amber-800">Pending</span>
                           </SelectItem>
-                          <SelectItem value="Win">
-                            <Badge variant="win">Win</Badge>
+                          <SelectItem value="Win" className="cursor-pointer">
+                            <span className="font-medium text-green-800">Win</span>
                           </SelectItem>
-                          <SelectItem value="Loss">
-                            <Badge variant="loss">Loss</Badge>
+                          <SelectItem value="Loss" className="cursor-pointer">
+                            <span className="font-medium text-red-800">Loss</span>
                           </SelectItem>
                         </SelectContent>
                       </Select>
