@@ -28,7 +28,7 @@ export default async function Home() {
           </Link>
         </div>
 
-        <SummaryStats leaderboardData={leaderboardData} />
+        <SummaryStats leaderboardData={leaderboardData} bets={bets} />
         
         <div className="space-y-8">
           <Leaderboard data={leaderboardData} />

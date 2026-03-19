@@ -3,11 +3,35 @@ import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, DollarSign, CheckCircle, Trophy } from 'lucide-react'
 import type { LeaderboardEntry } from '@/lib/queries'
 
-interface SummaryStatsProps {
-  leaderboardData: LeaderboardEntry[]
+type BetWithRelations = {
+  id: string
+  personId: string
+  person: {
+    id: string
+    name: string
+    createdAt: Date
+  }
+  type: string
+  gameDateTime: Date | null
+  description: string
+  matchup: string
+  betType: string
+  odds: string
+  wager: number
+  potentialPayout: number
+  result: string
+  profitLoss: number
+  parlayLegs: any[]
+  createdAt: Date
+  updatedAt: Date
 }
 
-export function SummaryStats({ leaderboardData }: SummaryStatsProps) {
+interface SummaryStatsProps {
+  leaderboardData: LeaderboardEntry[]
+  bets: BetWithRelations[]
+}
+
+export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
   const totalBets = leaderboardData.reduce(
     (sum, entry) => sum + entry.winCount + entry.lossCount + entry.pendingCount,
     0
@@ -23,9 +47,24 @@ export function SummaryStats({ leaderboardData }: SummaryStatsProps) {
     0
   )
 
-  const biggestWin = leaderboardData.reduce((max, entry) => {
-    return entry.netProfit > max ? entry.netProfit : max
-  }, 0)
+  // Calculate breakdown for Total Wagered
+  const settledWagered = bets
+    .filter(bet => bet.result === 'Win' || bet.result === 'Loss')
+    .reduce((sum, bet) => sum + Number(bet.wager), 0)
+  
+  const atRiskWagered = bets
+    .filter(bet => bet.result === 'Pending')
+    .reduce((sum, bet) => sum + Number(bet.wager), 0)
+  
+  const netProfitLoss = bets.reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
+
+  // Fix: Find the biggest single bet win, not biggest person net profit
+  const biggestWin = bets
+    .filter(bet => bet.result === 'Win')
+    .reduce((max, bet) => {
+      const profit = Number(bet.profitLoss)
+      return profit > max ? profit : max
+    }, 0)
 
   const stats = [
     {
@@ -33,24 +72,32 @@ export function SummaryStats({ leaderboardData }: SummaryStatsProps) {
       value: totalBets.toString(),
       icon: TrendingUp,
       color: 'text-blue-600',
+      breakdown: null,
     },
     {
       title: 'Total Wagered',
       value: formatCurrency(totalWagered),
       icon: DollarSign,
       color: 'text-green-600',
+      breakdown: {
+        settled: settledWagered,
+        atRisk: atRiskWagered,
+        netProfitLoss: netProfitLoss,
+      },
     },
     {
       title: 'Settled Bets',
       value: totalSettled.toString(),
       icon: CheckCircle,
       color: 'text-purple-600',
+      breakdown: null,
     },
     {
       title: 'Biggest Win',
       value: formatCurrency(biggestWin),
       icon: Trophy,
       color: 'text-yellow-600',
+      breakdown: null,
     },
   ]
 
@@ -66,6 +113,30 @@ export function SummaryStats({ leaderboardData }: SummaryStatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stat.value}</div>
+            {stat.breakdown && (
+              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Settled:</span>
+                  <span className="font-medium">{formatCurrency(stat.breakdown.settled)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>At Risk:</span>
+                  <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
+                </div>
+                <div className="flex justify-between border-t pt-1">
+                  <span>Net P/L:</span>
+                  <span className={`font-medium ${
+                    stat.breakdown.netProfitLoss > 0 
+                      ? 'text-green-600' 
+                      : stat.breakdown.netProfitLoss < 0 
+                      ? 'text-red-600' 
+                      : ''
+                  }`}>
+                    {formatCurrency(stat.breakdown.netProfitLoss)}
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
