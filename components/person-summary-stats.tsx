@@ -147,7 +147,10 @@ export function PersonSummaryStats({ bets, personName }: PersonSummaryStatsProps
                   )}
                   
                   {/* Total Wagered breakdown */}
-                  {'settled' in stat.breakdown && 'atRisk' in stat.breakdown && typeof stat.breakdown.settled === 'number' && (
+                  {'settled' in stat.breakdown && 'atRisk' in stat.breakdown && 'netProfitLoss' in stat.breakdown && 
+                   typeof stat.breakdown.settled === 'number' && 
+                   typeof stat.breakdown.atRisk === 'number' && 
+                   typeof stat.breakdown.netProfitLoss === 'number' && (
                     <>
                       <div className="flex justify-between">
                         <span>Settled:</span>
@@ -160,13 +163,13 @@ export function PersonSummaryStats({ bets, personName }: PersonSummaryStatsProps
                       <div className="flex justify-between border-t pt-1">
                         <span>Net P/L:</span>
                         <span className={`font-medium ${
-                          stat.breakdown.netProfitLoss! > 0 
+                          stat.breakdown.netProfitLoss > 0 
                             ? 'text-green-600' 
-                            : stat.breakdown.netProfitLoss! < 0 
+                            : stat.breakdown.netProfitLoss < 0 
                             ? 'text-red-600' 
                             : ''
                         }`}>
-                          {formatCurrency(stat.breakdown.netProfitLoss!)}
+                          {formatCurrency(stat.breakdown.netProfitLoss)}
                         </span>
                       </div>
                     </>
@@ -187,7 +190,7 @@ export function PersonSummaryStats({ bets, personName }: PersonSummaryStatsProps
                   )}
                   
                   {/* Biggest Win breakdown */}
-                  {'biggestLoss' in stat.breakdown && (
+                  {'biggestLoss' in stat.breakdown && typeof stat.breakdown.biggestLoss === 'number' && (
                     <div className="flex justify-between border-t pt-1">
                       <span>Biggest Loss:</span>
                       <span className="font-medium text-red-600">
