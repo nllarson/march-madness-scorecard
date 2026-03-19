@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency, formatPercentage } from '@/lib/utils'
 import { Trophy, Medal } from 'lucide-react'
+import Link from 'next/link'
 import type { LeaderboardEntry } from '@/lib/queries'
 
 interface LeaderboardProps {
@@ -52,9 +53,12 @@ export function Leaderboard({ data }: LeaderboardProps) {
                       </div>
                     </td>
                     <td className="p-3">
-                      <span className={isTopThree ? 'font-semibold' : ''}>
+                      <Link 
+                        href={`/person/${entry.personId}`}
+                        className={`hover:underline hover:text-primary transition-colors ${isTopThree ? 'font-semibold' : ''}`}
+                      >
                         {entry.personName}
-                      </span>
+                      </Link>
                     </td>
                     <td className="p-3 text-right text-muted-foreground">
                       {formatCurrency(entry.totalWagered)}
