@@ -66,13 +66,32 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
       return profit > max ? profit : max
     }, 0)
 
+  // Find the biggest loss (most negative profitLoss)
+  const biggestLoss = bets
+    .filter(bet => bet.result === 'Loss')
+    .reduce((min, bet) => {
+      const loss = Number(bet.profitLoss)
+      return loss < min ? loss : min
+    }, 0)
+
+  // Count open (pending) bets
+  const openBets = bets.filter(bet => bet.result === 'Pending').length
+  const settledBetsCount = bets.filter(bet => bet.result === 'Win' || bet.result === 'Loss').length
+
+  // Count wins and losses for settled bets breakdown
+  const winCount = bets.filter(bet => bet.result === 'Win').length
+  const lossCount = bets.filter(bet => bet.result === 'Loss').length
+
   const stats = [
     {
       title: 'Total Bets',
       value: totalBets.toString(),
       icon: TrendingUp,
       color: 'text-blue-600',
-      breakdown: null,
+      breakdown: {
+        open: openBets,
+        settled: settledBetsCount,
+      },
     },
     {
       title: 'Total Wagered',
@@ -90,14 +109,19 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
       value: totalSettled.toString(),
       icon: CheckCircle,
       color: 'text-purple-600',
-      breakdown: null,
+      breakdown: {
+        wins: winCount,
+        losses: lossCount,
+      },
     },
     {
       title: 'Biggest Win',
       value: formatCurrency(biggestWin),
       icon: Trophy,
       color: 'text-yellow-600',
-      breakdown: null,
+      breakdown: {
+        biggestLoss: biggestLoss,
+      },
     },
   ]
 
@@ -115,26 +139,69 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
             <div className="text-2xl font-bold">{stat.value}</div>
             {stat.breakdown && (
               <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Settled:</span>
-                  <span className="font-medium">{formatCurrency(stat.breakdown.settled)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>At Risk:</span>
-                  <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
-                </div>
-                <div className="flex justify-between border-t pt-1">
-                  <span>Net P/L:</span>
-                  <span className={`font-medium ${
-                    stat.breakdown.netProfitLoss > 0 
-                      ? 'text-green-600' 
-                      : stat.breakdown.netProfitLoss < 0 
-                      ? 'text-red-600' 
-                      : ''
-                  }`}>
-                    {formatCurrency(stat.breakdown.netProfitLoss)}
-                  </span>
-                </div>
+                {/* Total Bets breakdown */}
+                {'open' in stat.breakdown && 'settled' in stat.breakdown && typeof stat.breakdown.open === 'number' && (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Open:</span>
+                      <span className="font-medium">{stat.breakdown.open}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Settled:</span>
+                      <span className="font-medium">{stat.breakdown.settled}</span>
+                    </div>
+                  </>
+                )}
+                
+                {/* Total Wagered breakdown */}
+                {'settled' in stat.breakdown && 'atRisk' in stat.breakdown && typeof stat.breakdown.settled === 'number' && (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Settled:</span>
+                      <span className="font-medium">{formatCurrency(stat.breakdown.settled)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>At Risk:</span>
+                      <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-1">
+                      <span>Net P/L:</span>
+                      <span className={`font-medium ${
+                        stat.breakdown.netProfitLoss! > 0 
+                          ? 'text-green-600' 
+                          : stat.breakdown.netProfitLoss! < 0 
+                          ? 'text-red-600' 
+                          : ''
+                      }`}>
+                        {formatCurrency(stat.breakdown.netProfitLoss!)}
+                      </span>
+                    </div>
+                  </>
+                )}
+                
+                {/* Settled Bets breakdown */}
+                {'wins' in stat.breakdown && (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Wins:</span>
+                      <span className="font-medium text-green-600">{stat.breakdown.wins}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Losses:</span>
+                      <span className="font-medium text-red-600">{stat.breakdown.losses}</span>
+                    </div>
+                  </>
+                )}
+                
+                {/* Biggest Win breakdown */}
+                {'biggestLoss' in stat.breakdown && (
+                  <div className="flex justify-between border-t pt-1">
+                    <span>Biggest Loss:</span>
+                    <span className="font-medium text-red-600">
+                      {formatCurrency(stat.breakdown.biggestLoss)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
