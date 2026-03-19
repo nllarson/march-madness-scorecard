@@ -172,8 +172,8 @@ export function BetList({ bets }: BetListProps) {
         <div className="text-sm text-muted-foreground mb-4">
           Showing {filteredAndSortedBets.length} of {bets.length} bets
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div>
+          <table className="w-full table-fixed">
             <thead>
               <tr className="border-b">
                 <th className="text-left p-3 font-medium">Person</th>
@@ -182,8 +182,6 @@ export function BetList({ bets }: BetListProps) {
                 </th>
                 <th className="text-left p-3 font-medium">Description</th>
                 <th className="text-left p-3 font-medium">Matchup</th>
-                <th className="text-left p-3 font-medium">Type</th>
-                <th className="text-left p-3 font-medium">Odds</th>
                 <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('wager')}>
                   Wager {sortField === 'wager' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
@@ -201,23 +199,19 @@ export function BetList({ bets }: BetListProps) {
                 <React.Fragment key={bet.id}>
                   <tr className={`border-b ${getRowClassName(bet.result)}`}>
                     <td className="p-3 font-medium">{bet.person.name}</td>
-                    <td className="p-3 text-sm">
+                    <td className="p-3 text-sm whitespace-nowrap">
                       {bet.gameDateTime
                         ? new Date(bet.gameDateTime).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
                             minute: '2-digit',
-                            hour12: true,
-                          })
+                            hour12: false,
+                          }).replace(/^(\d+)\/(\d+)\/\d+,\s*(.*)$/, '$1/$2 @ $3')
                         : '-'}
                     </td>
-                    <td className="p-3">{bet.description}</td>
+                    <td className="p-3">{bet.description} -- ({bet.odds})</td>
                     <td className="p-3">{bet.matchup}</td>
-                    <td className="p-3">
-                      <Badge variant="outline">{bet.type}</Badge>
-                    </td>
-                    <td className="p-3">{bet.odds}</td>
                     <td className="p-3 text-right">{formatCurrency(Number(bet.wager))}</td>
                     <td className="p-3 text-right">{formatCurrency(Number(bet.potentialPayout))}</td>
                     <td className="p-3 text-center">
