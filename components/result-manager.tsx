@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/utils'
-import { CheckCircle, XCircle, Loader2, Trash2, Calendar } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, Trash2, Calendar, Search } from 'lucide-react'
 
 type BetWithPerson = {
   id: string
@@ -37,12 +37,21 @@ interface ResultManagerProps {
   bets: BetWithPerson[]
 }
 
+type SortField = 'gameDateTime' | 'wager' | 'potentialPayout' | 'profitLoss'
+type SortDirection = 'asc' | 'desc'
+
 export function ResultManager({ bets }: ResultManagerProps) {
   const router = useRouter()
   const [selectedBets, setSelectedBets] = useState<Set<string>>(new Set())
   const [updating, setUpdating] = useState(false)
   const [localBets, setLocalBets] = useState(bets)
   const [editingDateTime, setEditingDateTime] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [personFilter, setPersonFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [resultFilter, setResultFilter] = useState<string>('all')
+  const [sortField, setSortField] = useState<SortField>('gameDateTime')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
   const toggleBet = (betId: string) => {
     const newSelected = new Set(selectedBets)
@@ -55,10 +64,79 @@ export function ResultManager({ bets }: ResultManagerProps) {
   }
 
   const toggleAll = () => {
-    if (selectedBets.size === localBets.length) {
+    if (selectedBets.size === filteredAndSortedBets.length) {
       setSelectedBets(new Set())
     } else {
-      setSelectedBets(new Set(localBets.map(b => b.id)))
+      setSelectedBets(new Set(filteredAndSortedBets.map(b => b.id)))
+    }
+  }
+
+  const uniquePersons = useMemo(() => {
+    const persons = new Map<string, string>()
+    localBets.forEach(bet => {
+      persons.set(bet.person.id, bet.person.name)
+    })
+    return Array.from(persons.entries())
+  }, [localBets])
+
+  const getStatusPriority = (result: string) => {
+    if (result === 'Pending') return 1
+    if (result === 'Win') return 2
+    if (result === 'Loss') return 3
+    return 4
+  }
+
+  const filteredAndSortedBets = useMemo(() => {
+    let filtered = localBets.filter(bet => {
+      const matchesSearch = 
+        searchQuery === '' ||
+        bet.person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bet.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bet.matchup.toLowerCase().includes(searchQuery.toLowerCase())
+
+      const matchesPerson = personFilter === 'all' || bet.person.id === personFilter
+      const matchesType = typeFilter === 'all' || bet.type === typeFilter
+      const matchesResult = resultFilter === 'all' || bet.result === resultFilter
+
+      return matchesSearch && matchesPerson && matchesType && matchesResult
+    })
+
+    filtered.sort((a, b) => {
+      // Primary sort by status
+      const statusA = getStatusPriority(a.result)
+      const statusB = getStatusPriority(b.result)
+      if (statusA !== statusB) {
+        return statusA - statusB
+      }
+
+      // Secondary sort by selected field
+      let aVal: any = a[sortField]
+      let bVal: any = b[sortField]
+
+      if (sortField === 'gameDateTime') {
+        aVal = aVal ? new Date(aVal).getTime() : 0
+        bVal = bVal ? new Date(bVal).getTime() : 0
+      } else {
+        aVal = Number(aVal)
+        bVal = Number(bVal)
+      }
+
+      if (sortDirection === 'asc') {
+        return aVal > bVal ? 1 : -1
+      } else {
+        return aVal < bVal ? 1 : -1
+      }
+    })
+
+    return filtered
+  }, [localBets, searchQuery, personFilter, typeFilter, resultFilter, sortField, sortDirection])
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
     }
   }
 
@@ -194,6 +272,49 @@ export function ResultManager({ bets }: ResultManagerProps) {
     <Card>
       <CardHeader>
         <CardTitle>Manage Results</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search bets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={personFilter} onValueChange={setPersonFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All People" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All People</SelectItem>
+              {uniquePersons.map(([id, name]) => (
+                <SelectItem key={id} value={id}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="Straight">Straight</SelectItem>
+              <SelectItem value="Parlay">Parlay</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={resultFilter} onValueChange={setResultFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Results" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Results</SelectItem>
+              <SelectItem value="Win">Win</SelectItem>
+              <SelectItem value="Loss">Loss</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         {selectedBets.size > 0 && (
           <div className="flex gap-2 mt-4">
             <Button
@@ -238,29 +359,40 @@ export function ResultManager({ bets }: ResultManagerProps) {
         )}
       </CardHeader>
       <CardContent>
+        <div className="text-sm text-muted-foreground mb-4">
+          Showing {filteredAndSortedBets.length} of {localBets.length} bets
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b">
                 <th className="text-left p-3">
                   <Checkbox
-                    checked={selectedBets.size === localBets.length && localBets.length > 0}
+                    checked={selectedBets.size === filteredAndSortedBets.length && filteredAndSortedBets.length > 0}
                     onCheckedChange={toggleAll}
                   />
                 </th>
                 <th className="text-left p-3 font-medium">Person</th>
-                <th className="text-left p-3 font-medium">Date/Time</th>
+                <th className="text-left p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('gameDateTime')}>
+                  Date/Time {sortField === 'gameDateTime' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th className="text-left p-3 font-medium">Description</th>
                 <th className="text-left p-3 font-medium">Matchup</th>
-                <th className="text-right p-3 font-medium">Wager</th>
-                <th className="text-right p-3 font-medium">Payout</th>
+                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('wager')}>
+                  Wager {sortField === 'wager' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('potentialPayout')}>
+                  Payout {sortField === 'potentialPayout' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th className="text-center p-3 font-medium">Result</th>
-                <th className="text-right p-3 font-medium">Profit/Loss</th>
+                <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted" onClick={() => toggleSort('profitLoss')}>
+                  Profit/Loss {sortField === 'profitLoss' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th className="text-center p-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {localBets.map((bet) => {
+              {filteredAndSortedBets.map((bet) => {
                 const formatDateTimeForInput = (date: Date | null) => {
                   if (!date) return ''
                   const d = new Date(date)
@@ -331,24 +463,32 @@ export function ResultManager({ bets }: ResultManagerProps) {
                   <td className="p-3">{bet.matchup}</td>
                   <td className="p-3 text-right">{formatCurrency(Number(bet.wager))}</td>
                   <td className="p-3 text-right">{formatCurrency(Number(bet.potentialPayout))}</td>
-                  <td className="p-3">
+                  <td className="p-3 text-center">
                     <Select
                       value={bet.result}
                       onValueChange={(value) => updateSingleResult(bet.id, value as 'Win' | 'Loss' | 'Pending')}
                       disabled={updating}
                     >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
+                      <SelectTrigger className={`w-28 border-0 ${
+                        bet.result === 'Win' 
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                          : bet.result === 'Loss'
+                          ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                          : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                      }`}>
+                        <SelectValue>
+                          <span className="font-medium">{bet.result}</span>
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Pending">
-                          <Badge variant="pending">Pending</Badge>
+                        <SelectItem value="Pending" className="cursor-pointer">
+                          <span className="font-medium text-amber-800">Pending</span>
                         </SelectItem>
-                        <SelectItem value="Win">
-                          <Badge variant="win">Win</Badge>
+                        <SelectItem value="Win" className="cursor-pointer">
+                          <span className="font-medium text-green-800">Win</span>
                         </SelectItem>
-                        <SelectItem value="Loss">
-                          <Badge variant="loss">Loss</Badge>
+                        <SelectItem value="Loss" className="cursor-pointer">
+                          <span className="font-medium text-red-800">Loss</span>
                         </SelectItem>
                       </SelectContent>
                     </Select>

@@ -65,6 +65,13 @@ export function BetList({ bets }: BetListProps) {
     return Array.from(persons.entries())
   }, [bets])
 
+  const getStatusPriority = (result: string) => {
+    if (result === 'Pending') return 1
+    if (result === 'Win') return 2
+    if (result === 'Loss') return 3
+    return 4
+  }
+
   const filteredAndSortedBets = useMemo(() => {
     let filtered = localBets.filter(bet => {
       const matchesSearch = 
@@ -81,6 +88,14 @@ export function BetList({ bets }: BetListProps) {
     })
 
     filtered.sort((a, b) => {
+      // Primary sort by status
+      const statusA = getStatusPriority(a.result)
+      const statusB = getStatusPriority(b.result)
+      if (statusA !== statusB) {
+        return statusA - statusB
+      }
+
+      // Secondary sort by selected field
       let aVal: any = a[sortField]
       let bVal: any = b[sortField]
 
