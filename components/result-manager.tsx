@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/utils'
-import { CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, Trash2, Calendar } from 'lucide-react'
 
 type BetWithPerson = {
   id: string
@@ -36,9 +38,11 @@ interface ResultManagerProps {
 }
 
 export function ResultManager({ bets }: ResultManagerProps) {
+  const router = useRouter()
   const [selectedBets, setSelectedBets] = useState<Set<string>>(new Set())
   const [updating, setUpdating] = useState(false)
   const [localBets, setLocalBets] = useState(bets)
+  const [editingDateTime, setEditingDateTime] = useState<string | null>(null)
 
   const toggleBet = (betId: string) => {
     const newSelected = new Set(selectedBets)
@@ -104,6 +108,29 @@ export function ResultManager({ bets }: ResultManagerProps) {
     }
   }
 
+  const updateDateTime = async (betId: string, newDateTime: string) => {
+    if (!newDateTime) return
+
+    setUpdating(true)
+    try {
+      const response = await fetch(`/api/bets/${betId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameDateTime: newDateTime }),
+      })
+
+      if (response.ok) {
+        const updatedBet = await response.json()
+        setLocalBets(prev => prev.map(b => b.id === betId ? { ...b, gameDateTime: updatedBet.gameDateTime } : b))
+        setEditingDateTime(null)
+      }
+    } catch (error) {
+      console.error('Failed to update datetime:', error)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   const deleteBet = async (betId: string) => {
     if (!confirm('Are you sure you want to delete this bet? This action cannot be undone.')) {
       return
@@ -122,6 +149,8 @@ export function ResultManager({ bets }: ResultManagerProps) {
           newSet.delete(betId)
           return newSet
         })
+        // Refresh server data to update bank balances
+        router.refresh()
       }
     } catch (error) {
       console.error('Failed to delete bet:', error)
@@ -220,6 +249,7 @@ export function ResultManager({ bets }: ResultManagerProps) {
                   />
                 </th>
                 <th className="text-left p-3 font-medium">Person</th>
+                <th className="text-left p-3 font-medium">Date/Time</th>
                 <th className="text-left p-3 font-medium">Description</th>
                 <th className="text-left p-3 font-medium">Matchup</th>
                 <th className="text-right p-3 font-medium">Wager</th>
@@ -230,7 +260,19 @@ export function ResultManager({ bets }: ResultManagerProps) {
               </tr>
             </thead>
             <tbody>
-              {localBets.map((bet) => (
+              {localBets.map((bet) => {
+                const formatDateTimeForInput = (date: Date | null) => {
+                  if (!date) return ''
+                  const d = new Date(date)
+                  const year = d.getFullYear()
+                  const month = String(d.getMonth() + 1).padStart(2, '0')
+                  const day = String(d.getDate()).padStart(2, '0')
+                  const hours = String(d.getHours()).padStart(2, '0')
+                  const minutes = String(d.getMinutes()).padStart(2, '0')
+                  return `${year}-${month}-${day}T${hours}:${minutes}`
+                }
+
+                return (
                 <tr key={bet.id} className="border-b hover:bg-muted/50">
                   <td className="p-3">
                     <Checkbox
@@ -239,6 +281,52 @@ export function ResultManager({ bets }: ResultManagerProps) {
                     />
                   </td>
                   <td className="p-3 font-medium">{bet.person.name}</td>
+                  <td className="p-3">
+                    {editingDateTime === bet.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="datetime-local"
+                          defaultValue={formatDateTimeForInput(bet.gameDateTime)}
+                          min="2000-01-01T00:00"
+                          max="2099-12-31T23:59"
+                          onBlur={(e) => {
+                            if (e.target.value) {
+                              updateDateTime(bet.id, e.target.value)
+                            } else {
+                              setEditingDateTime(null)
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateDateTime(bet.id, e.currentTarget.value)
+                            } else if (e.key === 'Escape') {
+                              setEditingDateTime(null)
+                            }
+                          }}
+                          className="w-48 text-sm"
+                          autoFocus
+                          disabled={updating}
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setEditingDateTime(bet.id)}
+                        className="flex items-center gap-2 hover:text-primary transition-colors text-sm"
+                        disabled={updating}
+                      >
+                        <Calendar className="h-3 w-3" />
+                        {bet.gameDateTime
+                          ? new Date(bet.gameDateTime).toLocaleString('en-US', {
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: false,
+                            }).replace(/^(\d+)\/(\d+)\/\d+,\s*(.*)$/, '$1/$2 @ $3')
+                          : 'Set time'}
+                      </button>
+                    )}
+                  </td>
                   <td className="p-3">{bet.description}</td>
                   <td className="p-3">{bet.matchup}</td>
                   <td className="p-3 text-right">{formatCurrency(Number(bet.wager))}</td>
@@ -290,7 +378,7 @@ export function ResultManager({ bets }: ResultManagerProps) {
                     </Button>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

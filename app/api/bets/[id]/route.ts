@@ -1,5 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { deleteBet } from '@/lib/queries'
+import { deleteBet, updateBet } from '@/lib/queries'
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const betId = params.id
+    const body = await request.json()
+
+    if (!betId) {
+      return NextResponse.json(
+        { error: 'Bet ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const { gameDateTime } = body
+
+    if (!gameDateTime) {
+      return NextResponse.json(
+        { error: 'gameDateTime is required' },
+        { status: 400 }
+      )
+    }
+
+    const updatedBet = await updateBet(betId, {
+      gameDateTime: new Date(gameDateTime)
+    })
+
+    return NextResponse.json(updatedBet)
+  } catch (error) {
+    console.error('Update bet error:', error)
+    return NextResponse.json(
+      { 
+        error: 'Failed to update bet', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
+      { status: 500 }
+    )
+  }
+}
 
 export async function DELETE(
   request: NextRequest,

@@ -24,7 +24,13 @@ export type BetImportRow = z.infer<typeof betImportSchema>
 export const createBetSchema = z.object({
   personId: z.string().uuid(),
   type: z.enum(['Straight', 'Parlay']),
-  gameDateTime: z.string().datetime().optional(),
+  gameDateTime: z.string().refine((val) => {
+    if (!val) return true // Optional field
+    // Accept both datetime-local format (YYYY-MM-DDTHH:mm) and ISO datetime
+    const dateTimeLocalRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
+    const isValidFormat = dateTimeLocalRegex.test(val) || !isNaN(Date.parse(val))
+    return isValidFormat
+  }, { message: "Invalid datetime format" }).optional(),
   description: z.string().min(1),
   matchup: z.string().min(1),
   betType: z.string().min(1),

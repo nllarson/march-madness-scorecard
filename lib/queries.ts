@@ -338,6 +338,31 @@ export async function updateBet(
 }
 
 export async function deleteBet(betId: string) {
+  // Get the bet details before deleting
+  const bet = await prisma.bet.findUnique({ 
+    where: { id: betId },
+  })
+  
+  if (!bet) {
+    throw new Error('Bet not found')
+  }
+
+  // Refund based on bet result:
+  // - Pending: refund wager (it was deducted when bet was placed)
+  // - Win: remove payout from bank (it was added when marked as win)
+  // - Loss: refund wager (it was deducted when bet was placed, nothing was added back)
+  
+  if (bet.result === 'Pending') {
+    // Refund the wager that was deducted when bet was placed
+    await updatePersonBank(bet.personId, Number(bet.wager))
+  } else if (bet.result === 'Win') {
+    // Remove the payout that was added when bet won
+    await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
+  } else if (bet.result === 'Loss') {
+    // Refund the wager that was deducted (nothing was added back for loss)
+    await updatePersonBank(bet.personId, Number(bet.wager))
+  }
+
   return await prisma.bet.delete({
     where: { id: betId },
   })

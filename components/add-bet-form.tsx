@@ -226,6 +226,8 @@ export function AddBetForm({ persons }: { persons: Person[] }) {
                 value={formData.gameDateTime}
                 onChange={(e) => setFormData({ ...formData, gameDateTime: e.target.value })}
                 disabled={loading}
+                min="2000-01-01T00:00"
+                max="2099-12-31T23:59"
               />
             </div>
 
