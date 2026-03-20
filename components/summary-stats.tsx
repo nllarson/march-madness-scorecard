@@ -52,8 +52,12 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
     .filter(bet => bet.result === 'Pending')
     .reduce((sum, bet) => sum + Number(bet.wager), 0)
   
+  const lost = bets
+    .filter(bet => bet.result === 'Loss')
+    .reduce((sum, bet) => sum + Math.abs(Number(bet.profitLoss)), 0)
+  
   const available = totalBalance
-  const total = totalBalance + atRisk
+  const total = totalBalance + atRisk + lost
   
   const netProfitLoss = bets.reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
 
@@ -100,6 +104,7 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
       breakdown: {
         available: available,
         atRisk: atRisk,
+        lost: lost,
         total: total,
       },
     },
@@ -153,9 +158,10 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
                 )}
                 
                 {/* Total Balance breakdown */}
-                {'available' in stat.breakdown && 'atRisk' in stat.breakdown && 'total' in stat.breakdown && 
+                {'available' in stat.breakdown && 'atRisk' in stat.breakdown && 'lost' in stat.breakdown && 'total' in stat.breakdown && 
                  typeof stat.breakdown.available === 'number' && 
                  typeof stat.breakdown.atRisk === 'number' && 
+                 typeof stat.breakdown.lost === 'number' && 
                  typeof stat.breakdown.total === 'number' && (
                   <>
                     <div className="flex justify-between">
@@ -165,6 +171,10 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
                     <div className="flex justify-between">
                       <span>At Risk:</span>
                       <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Lost:</span>
+                      <span className="font-medium text-red-600">{formatCurrency(stat.breakdown.lost)}</span>
                     </div>
                     <div className="flex justify-between border-t pt-1">
                       <span>Total:</span>
