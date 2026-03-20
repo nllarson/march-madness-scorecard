@@ -29,7 +29,6 @@ export function Leaderboard({ data }: LeaderboardProps) {
               <tr className="border-b">
                 <th className="text-left p-3 font-medium">Rank</th>
                 <th className="text-left p-3 font-medium">Person</th>
-                <th className="text-right p-3 font-medium">Balance</th>
                 <th className="text-right p-3 font-medium">Won</th>
                 <th className="text-right p-3 font-medium">Net Profit</th>
                 <th className="text-center p-3 font-medium">Record</th>
@@ -59,9 +58,6 @@ export function Leaderboard({ data }: LeaderboardProps) {
                       >
                         {entry.personName}
                       </Link>
-                    </td>
-                    <td className="p-3 text-right text-muted-foreground">
-                      {formatCurrency(entry.currentBalance)}
                     </td>
                     <td className="p-3 text-right text-muted-foreground">
                       {formatCurrency(entry.totalWon)}
