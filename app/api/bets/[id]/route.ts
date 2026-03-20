@@ -25,8 +25,20 @@ export async function PATCH(
       )
     }
 
+    // Parse datetime preserving local timezone
+    let parsedDateTime: Date
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(gameDateTime)) {
+      // datetime-local format - treat as local time
+      const [datePart, timePart] = gameDateTime.split('T')
+      const [year, month, day] = datePart.split('-').map(Number)
+      const [hours, minutes] = timePart.split(':').map(Number)
+      parsedDateTime = new Date(year, month - 1, day, hours, minutes)
+    } else {
+      parsedDateTime = new Date(gameDateTime)
+    }
+
     const updatedBet = await updateBet(betId, {
-      gameDateTime: new Date(gameDateTime)
+      gameDateTime: parsedDateTime
     })
 
     return NextResponse.json(updatedBet)

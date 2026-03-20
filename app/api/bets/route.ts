@@ -19,7 +19,20 @@ export async function POST(request: NextRequest) {
     const data = validationResult.data
 
     // Convert datetime string to Date if provided
-    const gameDateTime = data.gameDateTime ? new Date(data.gameDateTime) : undefined
+    // datetime-local format is YYYY-MM-DDTHH:mm which needs to be treated as local time
+    let gameDateTime: Date | undefined = undefined
+    if (data.gameDateTime) {
+      // If it's in datetime-local format (no timezone), append local timezone offset
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(data.gameDateTime)) {
+        // Treat as local time by creating Date from components
+        const [datePart, timePart] = data.gameDateTime.split('T')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hours, minutes] = timePart.split(':').map(Number)
+        gameDateTime = new Date(year, month - 1, day, hours, minutes)
+      } else {
+        gameDateTime = new Date(data.gameDateTime)
+      }
+    }
 
     // Create the bet
     const bet = await createBet({
