@@ -37,8 +37,8 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
     0
   )
 
-  const totalWagered = leaderboardData.reduce(
-    (sum, entry) => sum + entry.totalWagered,
+  const totalBalance = leaderboardData.reduce(
+    (sum, entry) => sum + entry.currentBalance,
     0
   )
 
@@ -47,12 +47,16 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
     0
   )
 
-  // Calculate breakdown for Total Wagered
-  const settledWagered = bets
-    .filter(bet => bet.result === 'Win' || bet.result === 'Loss')
-    .reduce((sum, bet) => sum + Number(bet.wager), 0)
+  // Calculate breakdown for Total Balance
+  const won = bets
+    .filter(bet => bet.result === 'Win')
+    .reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
   
-  const atRiskWagered = bets
+  const lost = bets
+    .filter(bet => bet.result === 'Loss')
+    .reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
+  
+  const atRisk = bets
     .filter(bet => bet.result === 'Pending')
     .reduce((sum, bet) => sum + Number(bet.wager), 0)
   
@@ -94,14 +98,14 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
       },
     },
     {
-      title: 'Total Wagered',
-      value: formatCurrency(totalWagered),
+      title: 'Total Balance',
+      value: formatCurrency(totalBalance),
       icon: DollarSign,
       color: 'text-green-600',
       breakdown: {
-        settled: settledWagered,
-        atRisk: atRiskWagered,
-        netProfitLoss: netProfitLoss,
+        won: won,
+        lost: lost,
+        atRisk: atRisk,
       },
     },
     {
@@ -153,31 +157,23 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
                   </>
                 )}
                 
-                {/* Total Wagered breakdown */}
-                {'settled' in stat.breakdown && 'atRisk' in stat.breakdown && 'netProfitLoss' in stat.breakdown && 
-                 typeof stat.breakdown.settled === 'number' && 
-                 typeof stat.breakdown.atRisk === 'number' && 
-                 typeof stat.breakdown.netProfitLoss === 'number' && (
+                {/* Total Balance breakdown */}
+                {'won' in stat.breakdown && 'lost' in stat.breakdown && 'atRisk' in stat.breakdown && 
+                 typeof stat.breakdown.won === 'number' && 
+                 typeof stat.breakdown.lost === 'number' && 
+                 typeof stat.breakdown.atRisk === 'number' && (
                   <>
                     <div className="flex justify-between">
-                      <span>Settled:</span>
-                      <span className="font-medium">{formatCurrency(stat.breakdown.settled)}</span>
+                      <span>Won:</span>
+                      <span className="font-medium text-green-600">{formatCurrency(stat.breakdown.won)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Lost:</span>
+                      <span className="font-medium text-red-600">{formatCurrency(stat.breakdown.lost)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>At Risk:</span>
                       <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
-                    </div>
-                    <div className="flex justify-between border-t pt-1">
-                      <span>Net P/L:</span>
-                      <span className={`font-medium ${
-                        stat.breakdown.netProfitLoss > 0 
-                          ? 'text-green-600' 
-                          : stat.breakdown.netProfitLoss < 0 
-                          ? 'text-red-600' 
-                          : ''
-                      }`}>
-                        {formatCurrency(stat.breakdown.netProfitLoss)}
-                      </span>
                     </div>
                   </>
                 )}

@@ -1,8 +1,91 @@
 import { prisma } from './db'
 import { BetResult, Prisma } from '@prisma/client'
 
+export async function getDefaultTournament() {
+  let tournament = await prisma.tournament.findFirst({
+    orderBy: { createdAt: 'asc' },
+  })
+
+  if (!tournament) {
+    tournament = await prisma.tournament.create({
+      data: {
+        name: 'Current Tournament',
+        description: 'Default tournament',
+      },
+    })
+  }
+
+  return tournament
+}
+
+export async function getPersonTournament(personId: string, tournamentId: string) {
+  return await prisma.personTournament.findUnique({
+    where: {
+      personId_tournamentId: {
+        personId,
+        tournamentId,
+      },
+    },
+  })
+}
+
+export async function updatePersonBank(personId: string, amount: number) {
+  const defaultTournament = await getDefaultTournament()
+  
+  const personTournament = await prisma.personTournament.findUnique({
+    where: {
+      personId_tournamentId: {
+        personId,
+        tournamentId: defaultTournament.id,
+      },
+    },
+  })
+
+  if (!personTournament) {
+    return await prisma.personTournament.create({
+      data: {
+        personId,
+        tournamentId: defaultTournament.id,
+        bank: amount,
+      },
+    })
+  }
+
+  const newBank = Number(personTournament.bank) + amount
+
+  return await prisma.personTournament.update({
+    where: {
+      personId_tournamentId: {
+        personId,
+        tournamentId: defaultTournament.id,
+      },
+    },
+    data: {
+      bank: newBank,
+    },
+  })
+}
+
+export async function getPersonBank(personId: string) {
+  const defaultTournament = await getDefaultTournament()
+  
+  const personTournament = await prisma.personTournament.findUnique({
+    where: {
+      personId_tournamentId: {
+        personId,
+        tournamentId: defaultTournament.id,
+      },
+    },
+  })
+
+  return personTournament ? Number(personTournament.bank) : 0
+}
+
 export async function getAllBets() {
+  const defaultTournament = await getDefaultTournament()
+  
   const bets = await prisma.bet.findMany({
+    where: { tournamentId: defaultTournament.id },
     include: {
       person: true,
       parlayLegs: true,
@@ -22,8 +105,13 @@ export async function getAllBets() {
 }
 
 export async function getBetsByPerson(personId: string) {
+  const defaultTournament = await getDefaultTournament()
+  
   const bets = await prisma.bet.findMany({
-    where: { personId },
+    where: { 
+      personId,
+      tournamentId: defaultTournament.id,
+    },
     include: {
       person: true,
       parlayLegs: true,
@@ -45,7 +133,8 @@ export async function getBetsByPerson(personId: string) {
 export type LeaderboardEntry = {
   personId: string
   personName: string
-  totalWagered: number
+  bank: number
+  currentBalance: number
   totalWon: number
   netProfit: number
   winCount: number
@@ -55,18 +144,26 @@ export type LeaderboardEntry = {
 }
 
 export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
+  const defaultTournament = await getDefaultTournament()
+  
   const persons = await prisma.person.findMany({
     include: {
-      bets: true,
+      bets: {
+        where: { tournamentId: defaultTournament.id },
+      },
+      personTournaments: {
+        where: { tournamentId: defaultTournament.id },
+      },
     },
   })
 
   const leaderboard = persons.map(person => {
-    const totalWagered = person.bets.reduce((sum, bet) => sum + Number(bet.wager), 0)
+    const bank = person.personTournaments[0]?.bank ? Number(person.personTournaments[0].bank) : 0
     const totalWon = person.bets
       .filter(bet => bet.result === 'Win')
       .reduce((sum, bet) => sum + Number(bet.potentialPayout), 0)
     const netProfit = person.bets.reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
+    const currentBalance = bank + netProfit
     const winCount = person.bets.filter(bet => bet.result === 'Win').length
     const lossCount = person.bets.filter(bet => bet.result === 'Loss').length
     const pendingCount = person.bets.filter(bet => bet.result === 'Pending').length
@@ -76,7 +173,8 @@ export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
     return {
       personId: person.id,
       personName: person.name,
-      totalWagered,
+      bank,
+      currentBalance,
       totalWon,
       netProfit,
       winCount,
@@ -151,9 +249,12 @@ export async function createBet(data: {
     odds: string
   }>
 }) {
+  const defaultTournament = await getDefaultTournament()
+  
   return await prisma.bet.create({
     data: {
       personId: data.personId,
+      tournamentId: defaultTournament.id,
       type: data.type,
       gameDateTime: data.gameDateTime,
       description: data.description,
@@ -207,14 +308,43 @@ export async function getAllPersons() {
 }
 
 export async function getOrCreatePerson(name: string) {
+  const defaultTournament = await getDefaultTournament()
+  
   let person = await prisma.person.findUnique({
     where: { name },
   })
 
   if (!person) {
     person = await prisma.person.create({
-      data: { name },
+      data: { 
+        name,
+        personTournaments: {
+          create: {
+            tournamentId: defaultTournament.id,
+            bank: 0,
+          },
+        },
+      },
     })
+  } else {
+    const personTournament = await prisma.personTournament.findUnique({
+      where: {
+        personId_tournamentId: {
+          personId: person.id,
+          tournamentId: defaultTournament.id,
+        },
+      },
+    })
+    
+    if (!personTournament) {
+      await prisma.personTournament.create({
+        data: {
+          personId: person.id,
+          tournamentId: defaultTournament.id,
+          bank: 0,
+        },
+      })
+    }
   }
 
   return person

@@ -28,27 +28,32 @@ type BetWithRelations = {
 interface PersonSummaryStatsProps {
   bets: BetWithRelations[]
   personName: string
+  personId: string
+  bank: number
 }
 
-export function PersonSummaryStats({ bets, personName }: PersonSummaryStatsProps) {
+export function PersonSummaryStats({ bets, personName, personId, bank }: PersonSummaryStatsProps) {
   const totalBets = bets.length
-
-  const totalWagered = bets.reduce((sum, bet) => sum + Number(bet.wager), 0)
 
   const totalSettled = bets.filter(
     bet => bet.result === 'Win' || bet.result === 'Loss'
   ).length
 
-  // Calculate breakdown for Total Wagered
-  const settledWagered = bets
-    .filter(bet => bet.result === 'Win' || bet.result === 'Loss')
-    .reduce((sum, bet) => sum + Number(bet.wager), 0)
+  // Calculate breakdown for Current Balance
+  const won = bets
+    .filter(bet => bet.result === 'Win')
+    .reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
   
-  const atRiskWagered = bets
+  const lost = bets
+    .filter(bet => bet.result === 'Loss')
+    .reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
+  
+  const atRisk = bets
     .filter(bet => bet.result === 'Pending')
     .reduce((sum, bet) => sum + Number(bet.wager), 0)
   
   const netProfitLoss = bets.reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
+  const currentBalance = bank + netProfitLoss
 
   // Find the biggest single bet win
   const biggestWin = bets
@@ -86,14 +91,14 @@ export function PersonSummaryStats({ bets, personName }: PersonSummaryStatsProps
       },
     },
     {
-      title: 'Total Wagered',
-      value: formatCurrency(totalWagered),
+      title: 'Current Balance',
+      value: formatCurrency(currentBalance),
       icon: DollarSign,
       color: 'text-green-600',
       breakdown: {
-        settled: settledWagered,
-        atRisk: atRiskWagered,
-        netProfitLoss: netProfitLoss,
+        won: won,
+        lost: lost,
+        atRisk: atRisk,
       },
     },
     {
@@ -146,31 +151,23 @@ export function PersonSummaryStats({ bets, personName }: PersonSummaryStatsProps
                     </>
                   )}
                   
-                  {/* Total Wagered breakdown */}
-                  {'settled' in stat.breakdown && 'atRisk' in stat.breakdown && 'netProfitLoss' in stat.breakdown && 
-                   typeof stat.breakdown.settled === 'number' && 
-                   typeof stat.breakdown.atRisk === 'number' && 
-                   typeof stat.breakdown.netProfitLoss === 'number' && (
+                  {/* Current Balance breakdown */}
+                  {'won' in stat.breakdown && 'lost' in stat.breakdown && 'atRisk' in stat.breakdown && 
+                   typeof stat.breakdown.won === 'number' && 
+                   typeof stat.breakdown.lost === 'number' && 
+                   typeof stat.breakdown.atRisk === 'number' && (
                     <>
                       <div className="flex justify-between">
-                        <span>Settled:</span>
-                        <span className="font-medium">{formatCurrency(stat.breakdown.settled)}</span>
+                        <span>Won:</span>
+                        <span className="font-medium text-green-600">{formatCurrency(stat.breakdown.won)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Lost:</span>
+                        <span className="font-medium text-red-600">{formatCurrency(stat.breakdown.lost)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>At Risk:</span>
                         <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
-                      </div>
-                      <div className="flex justify-between border-t pt-1">
-                        <span>Net P/L:</span>
-                        <span className={`font-medium ${
-                          stat.breakdown.netProfitLoss > 0 
-                            ? 'text-green-600' 
-                            : stat.breakdown.netProfitLoss < 0 
-                            ? 'text-red-600' 
-                            : ''
-                        }`}>
-                          {formatCurrency(stat.breakdown.netProfitLoss)}
-                        </span>
                       </div>
                     </>
                   )}

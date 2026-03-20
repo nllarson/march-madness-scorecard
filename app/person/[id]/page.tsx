@@ -1,4 +1,4 @@
-import { getBetsByPerson, getAllPersons } from '@/lib/queries'
+import { getBetsByPerson, getAllPersons, getPersonBank } from '@/lib/queries'
 import { PersonSummaryStats } from '@/components/person-summary-stats'
 import { BetList } from '@/components/bet-list'
 import Link from 'next/link'
@@ -18,6 +18,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
   // Fetch person's bets
   const bets = await getBetsByPerson(id)
+  
+  // Fetch person's bank
+  const bank = await getPersonBank(id)
   
   // If no bets found, check if person exists
   if (bets.length === 0) {
@@ -64,7 +67,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
           </Link>
         </div>
 
-        <PersonSummaryStats bets={bets} personName={personName} />
+        <PersonSummaryStats bets={bets} personName={personName} personId={id} bank={bank} />
         
         <div className="space-y-8">
           <BetList bets={bets} />

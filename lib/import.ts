@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { prisma } from './db'
 import { betImportSchema, type BetImportRow } from './validations'
+import { getDefaultTournament } from './queries'
 
 export interface ImportResult {
   success: boolean
@@ -107,9 +108,12 @@ export async function importBetsFromFile(
           }
         }
 
+        const defaultTournament = await getDefaultTournament()
+        
         await prisma.bet.create({
           data: {
             personId: person.id,
+            tournamentId: defaultTournament.id,
             type: validated.Type as 'Straight' | 'Parlay',
             gameDateTime,
             description: validated['Bet Description'],
