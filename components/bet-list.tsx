@@ -216,7 +216,7 @@ export function BetList({ bets }: BetListProps) {
                 </th>
                 <th className="text-center p-3 font-medium w-20">Result</th>
                 <th className="text-right p-3 font-medium cursor-pointer hover:bg-muted w-28" onClick={() => toggleSort('profitLoss')}>
-                  Profit/Loss {sortField === 'profitLoss' && (sortDirection === 'asc' ? '↑' : '↓')}
+                  Payout {sortField === 'profitLoss' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
               </tr>
             </thead>
@@ -276,14 +276,18 @@ export function BetList({ bets }: BetListProps) {
                     <td className="p-3 text-right">
                       <span
                         className={
-                          Number(bet.profitLoss) > 0
+                          bet.result === 'Win'
                             ? 'text-green-600 font-semibold'
-                            : Number(bet.profitLoss) < 0
+                            : bet.result === 'Loss'
                             ? 'text-red-600 font-semibold'
                             : 'text-muted-foreground'
                         }
                       >
-                        {formatCurrency(Number(bet.profitLoss))}
+                        {bet.result === 'Win' 
+                          ? formatCurrency(Number(bet.potentialPayout))
+                          : bet.result === 'Loss'
+                          ? formatCurrency(-Number(bet.wager))
+                          : '-'}
                       </span>
                     </td>
                   </tr>

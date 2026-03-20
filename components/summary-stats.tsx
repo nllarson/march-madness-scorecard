@@ -52,12 +52,9 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
     .filter(bet => bet.result === 'Pending')
     .reduce((sum, bet) => sum + Number(bet.wager), 0)
   
-  const lost = bets
-    .filter(bet => bet.result === 'Loss')
-    .reduce((sum, bet) => sum + Math.abs(Number(bet.profitLoss)), 0)
-  
-  const available = totalBalance
-  const total = totalBalance + atRisk + lost
+  const potentialPayouts = bets
+    .filter(bet => bet.result === 'Pending')
+    .reduce((sum, bet) => sum + Number(bet.potentialPayout), 0)
   
   const netProfitLoss = bets.reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
 
@@ -102,10 +99,8 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
       icon: DollarSign,
       color: 'text-green-600',
       breakdown: {
-        available: available,
         atRisk: atRisk,
-        lost: lost,
-        total: total,
+        potentialPayouts: potentialPayouts,
       },
     },
     {
@@ -158,27 +153,17 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
                 )}
                 
                 {/* Total Balance breakdown */}
-                {'available' in stat.breakdown && 'atRisk' in stat.breakdown && 'lost' in stat.breakdown && 'total' in stat.breakdown && 
-                 typeof stat.breakdown.available === 'number' && 
+                {'atRisk' in stat.breakdown && 'potentialPayouts' in stat.breakdown && 
                  typeof stat.breakdown.atRisk === 'number' && 
-                 typeof stat.breakdown.lost === 'number' && 
-                 typeof stat.breakdown.total === 'number' && (
+                 typeof stat.breakdown.potentialPayouts === 'number' && (
                   <>
-                    <div className="flex justify-between">
-                      <span>Available:</span>
-                      <span className="font-medium">{formatCurrency(stat.breakdown.available)}</span>
-                    </div>
                     <div className="flex justify-between">
                       <span>At Risk:</span>
                       <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Lost:</span>
-                      <span className="font-medium text-red-600">{formatCurrency(stat.breakdown.lost)}</span>
-                    </div>
-                    <div className="flex justify-between border-t pt-1">
-                      <span>Total:</span>
-                      <span className="font-medium">{formatCurrency(stat.breakdown.total)}</span>
+                      <span>Potential Payouts:</span>
+                      <span className="font-medium text-green-600">{formatCurrency(stat.breakdown.potentialPayouts)}</span>
                     </div>
                   </>
                 )}
