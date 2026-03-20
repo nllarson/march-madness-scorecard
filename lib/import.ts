@@ -109,6 +109,16 @@ export async function importBetsFromFile(
         }
 
         const defaultTournament = await getDefaultTournament()
+        const { updatePersonBank } = await import('./queries')
+        
+        // Handle bank updates based on bet result
+        // Deduct wager for all bets (pending, win, or loss)
+        await updatePersonBank(person.id, -validated.Wager)
+        
+        // If bet already won, add the payout back
+        if (result === 'Win') {
+          await updatePersonBank(person.id, validated['Potential Payout'])
+        }
         
         await prisma.bet.create({
           data: {

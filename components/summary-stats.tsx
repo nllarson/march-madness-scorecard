@@ -38,7 +38,7 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
   )
 
   const totalBalance = leaderboardData.reduce(
-    (sum, entry) => sum + entry.currentBalance,
+    (sum, entry) => sum + entry.bank, // Bank now includes all wagers/payouts automatically
     0
   )
 
@@ -48,17 +48,12 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
   )
 
   // Calculate breakdown for Total Balance
-  const won = bets
-    .filter(bet => bet.result === 'Win')
-    .reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
-  
-  const lost = bets
-    .filter(bet => bet.result === 'Loss')
-    .reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
-  
   const atRisk = bets
     .filter(bet => bet.result === 'Pending')
     .reduce((sum, bet) => sum + Number(bet.wager), 0)
+  
+  const available = totalBalance
+  const total = totalBalance + atRisk
   
   const netProfitLoss = bets.reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
 
@@ -103,9 +98,9 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
       icon: DollarSign,
       color: 'text-green-600',
       breakdown: {
-        won: won,
-        lost: lost,
+        available: available,
         atRisk: atRisk,
+        total: total,
       },
     },
     {
@@ -158,22 +153,22 @@ export function SummaryStats({ leaderboardData, bets }: SummaryStatsProps) {
                 )}
                 
                 {/* Total Balance breakdown */}
-                {'won' in stat.breakdown && 'lost' in stat.breakdown && 'atRisk' in stat.breakdown && 
-                 typeof stat.breakdown.won === 'number' && 
-                 typeof stat.breakdown.lost === 'number' && 
-                 typeof stat.breakdown.atRisk === 'number' && (
+                {'available' in stat.breakdown && 'atRisk' in stat.breakdown && 'total' in stat.breakdown && 
+                 typeof stat.breakdown.available === 'number' && 
+                 typeof stat.breakdown.atRisk === 'number' && 
+                 typeof stat.breakdown.total === 'number' && (
                   <>
                     <div className="flex justify-between">
-                      <span>Won:</span>
-                      <span className="font-medium text-green-600">{formatCurrency(stat.breakdown.won)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Lost:</span>
-                      <span className="font-medium text-red-600">{formatCurrency(stat.breakdown.lost)}</span>
+                      <span>Available:</span>
+                      <span className="font-medium">{formatCurrency(stat.breakdown.available)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>At Risk:</span>
                       <span className="font-medium">{formatCurrency(stat.breakdown.atRisk)}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-1">
+                      <span>Total:</span>
+                      <span className="font-medium">{formatCurrency(stat.breakdown.total)}</span>
                     </div>
                   </>
                 )}

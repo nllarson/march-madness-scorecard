@@ -163,7 +163,7 @@ export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
       .filter(bet => bet.result === 'Win')
       .reduce((sum, bet) => sum + Number(bet.potentialPayout), 0)
     const netProfit = person.bets.reduce((sum, bet) => sum + Number(bet.profitLoss), 0)
-    const currentBalance = bank + netProfit
+    const currentBalance = bank // Bank now includes all wagers/payouts automatically
     const winCount = person.bets.filter(bet => bet.result === 'Win').length
     const lossCount = person.bets.filter(bet => bet.result === 'Loss').length
     const pendingCount = person.bets.filter(bet => bet.result === 'Pending').length
@@ -191,11 +191,32 @@ export async function updateBetResult(betId: string, result: BetResult) {
   const bet = await prisma.bet.findUnique({ where: { id: betId } })
   if (!bet) throw new Error('Bet not found')
 
+  const oldResult = bet.result
   let profitLoss = 0
-  if (result === 'Win') {
+  
+  // Handle bank updates based on result transitions
+  if (oldResult === 'Pending' && result === 'Win') {
+    // Bet won: add full payout to bank
+    await updatePersonBank(bet.personId, Number(bet.potentialPayout))
     profitLoss = Number(bet.potentialPayout) - Number(bet.wager)
-  } else if (result === 'Loss') {
+  } else if (oldResult === 'Pending' && result === 'Loss') {
+    // Bet lost: wager was already deducted, no bank change
     profitLoss = -Number(bet.wager)
+  } else if (oldResult === 'Win' && result === 'Pending') {
+    // Reverting win to pending: remove payout from bank
+    await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
+    profitLoss = 0
+  } else if (oldResult === 'Loss' && result === 'Pending') {
+    // Reverting loss to pending: no bank change (wager still deducted)
+    profitLoss = 0
+  } else if (oldResult === 'Win' && result === 'Loss') {
+    // Changing from win to loss: remove payout from bank
+    await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
+    profitLoss = -Number(bet.wager)
+  } else if (oldResult === 'Loss' && result === 'Win') {
+    // Changing from loss to win: add payout to bank
+    await updatePersonBank(bet.personId, Number(bet.potentialPayout))
+    profitLoss = Number(bet.potentialPayout) - Number(bet.wager)
   }
 
   return await prisma.bet.update({
@@ -211,6 +232,26 @@ export async function bulkUpdateBetResults(betIds: string[], result: BetResult) 
   const bets = await prisma.bet.findMany({
     where: { id: { in: betIds } },
   })
+
+  // Handle bank updates for each bet
+  for (const bet of bets) {
+    const oldResult = bet.result
+    
+    if (oldResult === 'Pending' && result === 'Win') {
+      // Bet won: add full payout to bank
+      await updatePersonBank(bet.personId, Number(bet.potentialPayout))
+    } else if (oldResult === 'Win' && result === 'Pending') {
+      // Reverting win to pending: remove payout from bank
+      await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
+    } else if (oldResult === 'Win' && result === 'Loss') {
+      // Changing from win to loss: remove payout from bank
+      await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
+    } else if (oldResult === 'Loss' && result === 'Win') {
+      // Changing from loss to win: add payout to bank
+      await updatePersonBank(bet.personId, Number(bet.potentialPayout))
+    }
+    // Note: Pending->Loss and Loss->Pending don't change bank (wager already deducted)
+  }
 
   const updates = bets.map(bet => {
     let profitLoss = 0
@@ -250,6 +291,9 @@ export async function createBet(data: {
   }>
 }) {
   const defaultTournament = await getDefaultTournament()
+  
+  // Deduct wager from bank when bet is placed
+  await updatePersonBank(data.personId, -data.wager)
   
   return await prisma.bet.create({
     data: {
