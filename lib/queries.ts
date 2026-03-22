@@ -184,7 +184,18 @@ export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
     }
   })
 
-  return leaderboard.sort((a, b) => b.netProfit - a.netProfit)
+  return leaderboard.sort((a, b) => {
+    // Primary sort: Win percentage (descending)
+    if (b.winRate !== a.winRate) {
+      return b.winRate - a.winRate
+    }
+    // Secondary sort: Total wins (descending)
+    if (b.winCount !== a.winCount) {
+      return b.winCount - a.winCount
+    }
+    // Tertiary sort: Net profit (descending) as final tiebreaker
+    return b.netProfit - a.netProfit
+  })
 }
 
 export async function updateBetResult(betId: string, result: BetResult) {

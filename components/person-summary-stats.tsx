@@ -94,6 +94,7 @@ export function PersonSummaryStats({ bets, personName, personId, bank }: PersonS
       breakdown: {
         atRisk: atRisk,
         potentialPayouts: potentialPayouts,
+        netProfit: netProfitLoss,
       },
     },
     {
@@ -158,6 +159,18 @@ export function PersonSummaryStats({ bets, personName, personId, bank }: PersonS
                       <div className="flex justify-between">
                         <span>Potential Payouts:</span>
                         <span className="font-medium text-green-600">{formatCurrency(stat.breakdown.potentialPayouts)}</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-1">
+                        <span>Net Profit:</span>
+                        <span className={`font-medium ${
+                          stat.breakdown.netProfit > 0
+                            ? 'text-green-600'
+                            : stat.breakdown.netProfit < 0
+                            ? 'text-red-600'
+                            : 'text-muted-foreground'
+                        }`}>
+                          {formatCurrency(stat.breakdown.netProfit)}
+                        </span>
                       </div>
                     </>
                   )}
