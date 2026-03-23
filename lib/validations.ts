@@ -14,7 +14,7 @@ export const betImportSchema = z.object({
   'Odds': z.string(),
   'Wager': z.number(),
   'Potential Payout': z.number(),
-  'Result': z.enum(['Pending', 'Win', 'Loss', 'pending', 'win', 'loss']).optional(),
+  'Result': z.enum(['Pending', 'Win', 'Loss', 'Push', 'pending', 'win', 'loss', 'push']).optional(),
   'Profit/Loss': z.number().optional(),
   'Person': z.string().optional(),
 })
@@ -45,10 +45,10 @@ export const createBetSchema = z.object({
 })
 
 export const updateBetResultSchema = z.object({
-  result: z.enum(['Pending', 'Win', 'Loss']),
+  result: z.enum(['Pending', 'Win', 'Loss', 'Push']),
 })
 
 export const bulkUpdateResultSchema = z.object({
   betIds: z.array(z.string().uuid()),
-  result: z.enum(['Pending', 'Win', 'Loss']),
+  result: z.enum(['Pending', 'Win', 'Loss', 'Push']),
 })

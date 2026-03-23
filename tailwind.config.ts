@@ -64,6 +64,10 @@ const config = {
           DEFAULT: "hsl(45 93% 47%)",
           foreground: "hsl(0 0% 0%)",
         },
+        push: {
+          DEFAULT: "hsl(215 16% 47%)",
+          foreground: "hsl(0 0% 100%)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

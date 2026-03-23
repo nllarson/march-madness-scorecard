@@ -83,7 +83,8 @@ export function ResultManager({ bets }: ResultManagerProps) {
     if (result === 'Pending') return 1
     if (result === 'Win') return 2
     if (result === 'Loss') return 3
-    return 4
+    if (result === 'Push') return 4
+    return 5
   }
 
   const filteredAndSortedBets = useMemo(() => {
@@ -140,7 +141,7 @@ export function ResultManager({ bets }: ResultManagerProps) {
     }
   }
 
-  const updateSingleResult = async (betId: string, result: 'Win' | 'Loss' | 'Pending') => {
+  const updateSingleResult = async (betId: string, result: 'Win' | 'Loss' | 'Pending' | 'Push') => {
     setUpdating(true)
     try {
       const response = await fetch(`/api/bets/${betId}/result`, {
@@ -265,6 +266,7 @@ export function ResultManager({ bets }: ResultManagerProps) {
   const getResultBadgeVariant = (result: string) => {
     if (result === 'Win') return 'win'
     if (result === 'Loss') return 'loss'
+    if (result === 'Push') return 'push'
     return 'pending'
   }
 
@@ -311,6 +313,7 @@ export function ResultManager({ bets }: ResultManagerProps) {
               <SelectItem value="all">All Results</SelectItem>
               <SelectItem value="Win">Win</SelectItem>
               <SelectItem value="Loss">Loss</SelectItem>
+              <SelectItem value="Push">Push</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
             </SelectContent>
           </Select>
@@ -466,7 +469,7 @@ export function ResultManager({ bets }: ResultManagerProps) {
                   <td className="p-3 text-center">
                     <Select
                       value={bet.result}
-                      onValueChange={(value) => updateSingleResult(bet.id, value as 'Win' | 'Loss' | 'Pending')}
+                      onValueChange={(value) => updateSingleResult(bet.id, value as 'Win' | 'Loss' | 'Pending' | 'Push')}
                       disabled={updating}
                     >
                       <SelectTrigger className={`w-28 border-0 ${
@@ -474,6 +477,8 @@ export function ResultManager({ bets }: ResultManagerProps) {
                           ? 'bg-green-100 text-green-800 hover:bg-green-200' 
                           : bet.result === 'Loss'
                           ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                          : bet.result === 'Push'
+                          ? 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                           : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                       }`}>
                         <SelectValue>
@@ -489,6 +494,9 @@ export function ResultManager({ bets }: ResultManagerProps) {
                         </SelectItem>
                         <SelectItem value="Loss" className="cursor-pointer">
                           <span className="font-medium text-red-800">Loss</span>
+                        </SelectItem>
+                        <SelectItem value="Push" className="cursor-pointer">
+                          <span className="font-medium text-slate-800">Push</span>
                         </SelectItem>
                       </SelectContent>
                     </Select>

@@ -140,6 +140,7 @@ export type LeaderboardEntry = {
   winCount: number
   lossCount: number
   pendingCount: number
+  pushCount: number
   winRate: number
 }
 
@@ -167,7 +168,8 @@ export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
     const winCount = person.bets.filter(bet => bet.result === 'Win').length
     const lossCount = person.bets.filter(bet => bet.result === 'Loss').length
     const pendingCount = person.bets.filter(bet => bet.result === 'Pending').length
-    const settledCount = winCount + lossCount
+    const pushCount = person.bets.filter(bet => bet.result === 'Push').length
+    const settledCount = winCount + lossCount // Exclude pushes from win rate calculation
     const winRate = settledCount > 0 ? winCount / settledCount : 0
 
     return {
@@ -180,6 +182,7 @@ export async function getLeaderboardData(): Promise<LeaderboardEntry[]> {
       winCount,
       lossCount,
       pendingCount,
+      pushCount,
       winRate,
     }
   })
@@ -213,21 +216,45 @@ export async function updateBetResult(betId: string, result: BetResult) {
   } else if (oldResult === 'Pending' && result === 'Loss') {
     // Bet lost: wager was already deducted, no bank change
     profitLoss = -Number(bet.wager)
+  } else if (oldResult === 'Pending' && result === 'Push') {
+    // Bet pushed: refund wager to bank
+    await updatePersonBank(bet.personId, Number(bet.wager))
+    profitLoss = 0
   } else if (oldResult === 'Win' && result === 'Pending') {
     // Reverting win to pending: remove payout from bank
     await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
-    profitLoss = 0
-  } else if (oldResult === 'Loss' && result === 'Pending') {
-    // Reverting loss to pending: no bank change (wager still deducted)
     profitLoss = 0
   } else if (oldResult === 'Win' && result === 'Loss') {
     // Changing from win to loss: remove payout from bank
     await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
     profitLoss = -Number(bet.wager)
+  } else if (oldResult === 'Win' && result === 'Push') {
+    // Changing from win to push: remove payout, add back wager
+    await updatePersonBank(bet.personId, -Number(bet.potentialPayout) + Number(bet.wager))
+    profitLoss = 0
+  } else if (oldResult === 'Loss' && result === 'Pending') {
+    // Reverting loss to pending: no bank change (wager still deducted)
+    profitLoss = 0
   } else if (oldResult === 'Loss' && result === 'Win') {
     // Changing from loss to win: add payout to bank
     await updatePersonBank(bet.personId, Number(bet.potentialPayout))
     profitLoss = Number(bet.potentialPayout) - Number(bet.wager)
+  } else if (oldResult === 'Loss' && result === 'Push') {
+    // Changing from loss to push: add back wager
+    await updatePersonBank(bet.personId, Number(bet.wager))
+    profitLoss = 0
+  } else if (oldResult === 'Push' && result === 'Pending') {
+    // Reverting push to pending: deduct wager from bank
+    await updatePersonBank(bet.personId, -Number(bet.wager))
+    profitLoss = 0
+  } else if (oldResult === 'Push' && result === 'Win') {
+    // Changing from push to win: deduct wager, add payout
+    await updatePersonBank(bet.personId, -Number(bet.wager) + Number(bet.potentialPayout))
+    profitLoss = Number(bet.potentialPayout) - Number(bet.wager)
+  } else if (oldResult === 'Push' && result === 'Loss') {
+    // Changing from push to loss: deduct wager from bank
+    await updatePersonBank(bet.personId, -Number(bet.wager))
+    profitLoss = -Number(bet.wager)
   }
 
   return await prisma.bet.update({
@@ -249,19 +276,26 @@ export async function bulkUpdateBetResults(betIds: string[], result: BetResult) 
     const oldResult = bet.result
     
     if (oldResult === 'Pending' && result === 'Win') {
-      // Bet won: add full payout to bank
       await updatePersonBank(bet.personId, Number(bet.potentialPayout))
+    } else if (oldResult === 'Pending' && result === 'Push') {
+      await updatePersonBank(bet.personId, Number(bet.wager))
     } else if (oldResult === 'Win' && result === 'Pending') {
-      // Reverting win to pending: remove payout from bank
       await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
     } else if (oldResult === 'Win' && result === 'Loss') {
-      // Changing from win to loss: remove payout from bank
       await updatePersonBank(bet.personId, -Number(bet.potentialPayout))
+    } else if (oldResult === 'Win' && result === 'Push') {
+      await updatePersonBank(bet.personId, -Number(bet.potentialPayout) + Number(bet.wager))
     } else if (oldResult === 'Loss' && result === 'Win') {
-      // Changing from loss to win: add payout to bank
       await updatePersonBank(bet.personId, Number(bet.potentialPayout))
+    } else if (oldResult === 'Loss' && result === 'Push') {
+      await updatePersonBank(bet.personId, Number(bet.wager))
+    } else if (oldResult === 'Push' && result === 'Pending') {
+      await updatePersonBank(bet.personId, -Number(bet.wager))
+    } else if (oldResult === 'Push' && result === 'Win') {
+      await updatePersonBank(bet.personId, -Number(bet.wager) + Number(bet.potentialPayout))
+    } else if (oldResult === 'Push' && result === 'Loss') {
+      await updatePersonBank(bet.personId, -Number(bet.wager))
     }
-    // Note: Pending->Loss and Loss->Pending don't change bank (wager already deducted)
   }
 
   const updates = bets.map(bet => {
@@ -270,6 +304,8 @@ export async function bulkUpdateBetResults(betIds: string[], result: BetResult) 
       profitLoss = Number(bet.potentialPayout) - Number(bet.wager)
     } else if (result === 'Loss') {
       profitLoss = -Number(bet.wager)
+    } else if (result === 'Push') {
+      profitLoss = 0
     }
 
     return prisma.bet.update({
@@ -362,6 +398,7 @@ export async function deleteBet(betId: string) {
   // - Pending: refund wager (it was deducted when bet was placed)
   // - Win: remove payout from bank (it was added when marked as win)
   // - Loss: refund wager (it was deducted when bet was placed, nothing was added back)
+  // - Push: no change (wager was already refunded when marked as push)
   
   if (bet.result === 'Pending') {
     // Refund the wager that was deducted when bet was placed
@@ -372,6 +409,8 @@ export async function deleteBet(betId: string) {
   } else if (bet.result === 'Loss') {
     // Refund the wager that was deducted (nothing was added back for loss)
     await updatePersonBank(bet.personId, Number(bet.wager))
+  } else if (bet.result === 'Push') {
+    // No change needed - wager was already refunded when marked as push
   }
 
   return await prisma.bet.delete({

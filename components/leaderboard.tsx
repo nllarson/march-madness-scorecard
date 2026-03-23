@@ -65,8 +65,11 @@ export function Leaderboard({ data }: LeaderboardProps) {
                         <Badge variant="loss" className="px-1.5 py-0">
                           {entry.lossCount}L
                         </Badge>
+                        <Badge variant="push" className="px-1.5 py-0">
+                          {entry.pushCount}P
+                        </Badge>
                         <Badge variant="pending" className="px-1.5 py-0">
-                          {entry.pendingCount}P
+                          {entry.pendingCount}?
                         </Badge>
                       </div>
                     </td>

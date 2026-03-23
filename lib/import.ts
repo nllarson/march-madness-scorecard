@@ -80,7 +80,7 @@ export async function importBetsFromFile(
         }
 
         const result = validated.Result 
-          ? (validated.Result.charAt(0).toUpperCase() + validated.Result.slice(1).toLowerCase()) as 'Pending' | 'Win' | 'Loss'
+          ? (validated.Result.charAt(0).toUpperCase() + validated.Result.slice(1).toLowerCase()) as 'Pending' | 'Win' | 'Loss' | 'Push'
           : 'Pending'
 
         let profitLoss = 0
@@ -88,6 +88,8 @@ export async function importBetsFromFile(
           profitLoss = validated['Potential Payout'] - validated.Wager
         } else if (result === 'Loss') {
           profitLoss = -validated.Wager
+        } else if (result === 'Push') {
+          profitLoss = 0
         }
 
         let gameDateTime: Date | null = null
@@ -112,12 +114,16 @@ export async function importBetsFromFile(
         const { updatePersonBank } = await import('./queries')
         
         // Handle bank updates based on bet result
-        // Deduct wager for all bets (pending, win, or loss)
-        await updatePersonBank(person.id, -validated.Wager)
-        
-        // If bet already won, add the payout back
-        if (result === 'Win') {
-          await updatePersonBank(person.id, validated['Potential Payout'])
+        if (result === 'Push') {
+          // For push, don't deduct wager (it's returned to bettor)
+        } else {
+          // Deduct wager for pending, win, or loss bets
+          await updatePersonBank(person.id, -validated.Wager)
+          
+          // If bet already won, add the payout back
+          if (result === 'Win') {
+            await updatePersonBank(person.id, validated['Potential Payout'])
+          }
         }
         
         await prisma.bet.create({

@@ -69,7 +69,8 @@ export function BetList({ bets }: BetListProps) {
     if (result === 'Pending') return 1
     if (result === 'Win') return 2
     if (result === 'Loss') return 3
-    return 4
+    if (result === 'Push') return 4
+    return 5
   }
 
   const filteredAndSortedBets = useMemo(() => {
@@ -126,7 +127,7 @@ export function BetList({ bets }: BetListProps) {
     }
   }
 
-  const updateBetResult = async (betId: string, result: 'Win' | 'Loss' | 'Pending') => {
+  const updateBetResult = async (betId: string, result: 'Win' | 'Loss' | 'Pending' | 'Push') => {
     setUpdating(true)
     try {
       const response = await fetch(`/api/bets/${betId}/result`, {
@@ -152,12 +153,14 @@ export function BetList({ bets }: BetListProps) {
   const getResultBadgeVariant = (result: string) => {
     if (result === 'Win') return 'win'
     if (result === 'Loss') return 'loss'
+    if (result === 'Push') return 'push'
     return 'pending'
   }
 
   const getRowClassName = (result: string) => {
     if (result === 'Win') return 'bg-green-50 hover:bg-green-100'
     if (result === 'Loss') return 'bg-red-50 hover:bg-red-100'
+    if (result === 'Push') return 'bg-slate-50 hover:bg-slate-100'
     return 'bg-amber-50 hover:bg-amber-100'
   }
 
@@ -204,6 +207,7 @@ export function BetList({ bets }: BetListProps) {
               <SelectItem value="all">All Results</SelectItem>
               <SelectItem value="Win">Win</SelectItem>
               <SelectItem value="Loss">Loss</SelectItem>
+              <SelectItem value="Push">Push</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
             </SelectContent>
           </Select>
@@ -261,7 +265,7 @@ export function BetList({ bets }: BetListProps) {
                     <td className="p-3 text-center">
                       <Select
                         value={bet.result}
-                        onValueChange={(value) => updateBetResult(bet.id, value as 'Win' | 'Loss' | 'Pending')}
+                        onValueChange={(value) => updateBetResult(bet.id, value as 'Win' | 'Loss' | 'Pending' | 'Push')}
                         disabled={updating}
                       >
                         <SelectTrigger className={`w-28 border-0 ${
@@ -269,6 +273,8 @@ export function BetList({ bets }: BetListProps) {
                             ? 'bg-green-100 text-green-800 hover:bg-green-200' 
                             : bet.result === 'Loss'
                             ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                            : bet.result === 'Push'
+                            ? 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                             : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                         }`}>
                           <SelectValue>
@@ -285,6 +291,9 @@ export function BetList({ bets }: BetListProps) {
                           <SelectItem value="Loss" className="cursor-pointer">
                             <span className="font-medium text-red-800">Loss</span>
                           </SelectItem>
+                          <SelectItem value="Push" className="cursor-pointer">
+                            <span className="font-medium text-slate-800">Push</span>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </td>
@@ -295,6 +304,8 @@ export function BetList({ bets }: BetListProps) {
                             ? 'text-green-600 font-semibold'
                             : bet.result === 'Loss'
                             ? 'text-red-600 font-semibold'
+                            : bet.result === 'Push'
+                            ? 'text-slate-600 font-semibold'
                             : 'text-muted-foreground'
                         }
                       >
@@ -302,6 +313,8 @@ export function BetList({ bets }: BetListProps) {
                           ? formatCurrency(Number(bet.potentialPayout))
                           : bet.result === 'Loss'
                           ? formatCurrency(-Number(bet.wager))
+                          : bet.result === 'Push'
+                          ? formatCurrency(0)
                           : '-'}
                       </span>
                     </td>

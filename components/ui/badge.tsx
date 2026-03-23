@@ -18,6 +18,7 @@ const badgeVariants = cva(
         win: "border-transparent bg-win text-win-foreground",
         loss: "border-transparent bg-loss text-loss-foreground",
         pending: "border-transparent bg-pending text-pending-foreground",
+        push: "border-transparent bg-push text-push-foreground",
       },
     },
     defaultVariants: {
